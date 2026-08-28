@@ -1,241 +1,170 @@
-# Face Recognition Demo – From Basics to Near-Production
+# Face Verification Demo
 
-Repo này trình bày **toàn bộ lộ trình học và triển khai Face Recognition** của tác giả, được chia thành **4 mini project tương ứng với 4 giai đoạn nâng cấp**: từ hiểu bản chất embedding cho tới mô phỏng **hệ thống Face Verification gần với sản phẩm thực tế trong ngân hàng / KYC**.
+> A compact educational project that demonstrates face embeddings, cosine similarity, image comparison, and webcam-based 1:1 verification with InsightFace and OpenCV.
 
-README này **kết hợp**:
-- Phần mô tả hệ thống, kiến trúc, security, privacy (từ README ban đầu)
-- Phần phân chia **stage rõ ràng theo từng file** (README multi-stage)
+This repository documents two working stages of a face-verification learning path. It focuses on understanding how modern face systems represent a face as an embedding and how two embeddings can be compared.
 
-Mục tiêu không phải khoe code, mà là **thể hiện tư duy hệ thống AI đúng chuẩn doanh nghiệp**.
+## What is implemented
 
----
+| Script | Implemented behavior |
+| --- | --- |
+| `test_face.py` | Detect faces in two images, extract ArcFace embeddings, compute cosine similarity, and print a simple match decision |
+| `webcam_recognition.py` | Enroll one face in memory, compare live webcam frames against it, and display MATCH or NOT MATCH |
 
-## 🧠 Tổng quan bài toán Face Recognition
+Both scripts use InsightFace's `buffalo_l` model package with the CPU execution provider.
 
-Face Recognition hiện đại **không phải là bài toán phân loại (classification)**, mà là bài toán **metric learning**:
+## How it works
 
-- Model học cách ánh xạ khuôn mặt → **embedding vector (512 chiều)**
-- Hai khuôn mặt được so sánh bằng **cosine similarity**
-- Không cần train lại model khi thêm người mới
-
-Các khái niệm cốt lõi:
-- **Embedding**: vector đặc trưng đại diện cho khuôn mặt
-- **Cosine similarity**: độ giống nhau giữa 2 embedding
-- **Verify (1:1)**: xác thực danh tính
-- **Identify (1:N)**: nhận diện trong tập người đã biết
-
----
-
-## 🧩 Tổng quan cấu trúc repo
-
-```
-Demo/
-├── test_face.py                     # Stage 1
-├── verify_identify_demo.py          # Stage 2
-├── verify_identify_demo_advance.py  # Stage 3
-├── webcam_recognition.py            # Stage 4
-├── requirements.txt
-└── db/                              # Lưu embedding (.npy)
+```mermaid
+flowchart TD
+    A[Image or webcam frame] --> B[Face detection]
+    B --> C[ArcFace embedding]
+    C --> D[L2 normalization]
+    D --> E[Cosine similarity]
+    E --> F[Demo threshold decision]
 ```
 
----
+Modern face verification is a metric-learning problem:
 
-# 🔹 Stage 1 – Face Embedding Fundamentals
-### 📄 File: `test_face.py`
+1. Detect a face in an image.
+2. Convert the face into a numerical embedding.
+3. Normalize both embeddings.
+4. Measure cosine similarity.
+5. Compare the score with a calibrated threshold.
 
-### 🎯 Mục tiêu
-Xây dựng **nền tảng tư duy đúng** về Face Recognition:
-- Model không "nhận diện ID"
-- Model chỉ sinh ra embedding
+The threshold used in this repository is a demo default. It is not a universal percentage or a certified security threshold.
 
-### ✨ Chức năng
-- Load pre-trained model InsightFace (ArcFace)
-- Detect khuôn mặt trong ảnh
-- Trích xuất embedding 512 chiều
-- Tính cosine similarity giữa 2 khuôn mặt
+## Repository structure
 
-### 📚 Kiến thức đạt được
-- Embedding là gì và vì sao cần normalize
-- Cosine similarity **không phải %**
-- Vì sao cùng 1 người nhưng similarity không cố định
-
-👉 Đây là **bước bắt buộc** trước khi làm bất kỳ hệ thống Face Recognition nào.
-
----
-
-# 🔹 Stage 2 – Identify (1:N) vs Verify (1:1)
-### 📄 File: `verify_identify_demo.py`
-
-### 🎯 Mục tiêu
-Phân biệt **2 bài toán hoàn toàn khác nhau trong thực tế**:
-
-| Bài toán | Câu hỏi |
-|-------|-------|
-| Identify (1:N) | "Người này là ai trong DB?" |
-| Verify (1:1) | "Người này có phải X không?" |
-
-### ✨ Chức năng
-- Lưu embedding vào DB (.npy)
-- Identify (1:N):
-  - So sánh embedding với toàn bộ DB
-  - Trả về ID giống nhất nếu vượt threshold
-- Verify (1:1):
-  - So sánh embedding với **1 ID được chỉ định**
-
-### 📚 Kiến thức đạt được
-- Vì sao **banking/KYC không dùng Identify**
-- Verify (1:1) là chuẩn xác thực danh tính
-- Threshold phụ thuộc bài toán
-
----
-
-# 🔹 Stage 3 – System Thinking & Secure Design
-### 📄 File: `verify_identify_demo_advance.py`
-
-### 🎯 Mục tiêu
-Chuyển từ **demo ML** sang **mini system**:
-- Rõ state
-- Rõ luồng nghiệp vụ
-- Có kiểm soát rủi ro
-
-### ✨ Chức năng
-- Tách rõ các pha:
-  - Enroll
-  - Verify
-  - Identify
-- Chuẩn hoá embedding (L2 normalization)
-- Kiểm soát threshold theo mode
-
-### 📚 Kiến thức đạt được
-- Vì sao phải normalize embedding
-- Vì sao không brute-force DB lớn
-- Tư duy **security-first trong AI system**
-
----
-
-# 🔹 Stage 4 – Near-Production Face Verification System
-### 📄 File: `webcam_recognition.py`
-
-### 🎯 Mục tiêu
-Mô phỏng **hệ thống xác thực khuôn mặt gần với sản phẩm thật**:
-- Real-time webcam
-- Có UI
-- Có state machine
-- Có audit logic
-
-### ✨ Chức năng
-- Webcam face recognition real-time
-- 3 chế độ hoạt động:
-  - **Enroll**: đăng ký người mới
-  - **Verify (1:1)**: xác thực danh tính (chuẩn banking)
-  - **Identify (1:N)**: demo
-- Popup UI nhập ID
-- Kiểm soát:
-  - ID trùng
-  - ID không tồn tại
-- Lưu embedding vào DB
-
-### 📚 Kiến thức đạt được
-- Luồng verify chuẩn:
-  ```
-  User nhập ID
-  → Load embedding
-  → Camera capture
-  → Compare
-  → PASS / FAIL
-  ```
-- Vì sao face chỉ là **1 yếu tố xác thực**
-- Privacy-aware design
-
----
-
-## 📊 Cosine Similarity & Threshold
-
-- Cosine similarity ∈ [-1, 1]
-- Không phải phần trăm
-
-| Giá trị | Ý nghĩa |
-|------|-------|
-| > 0.8 | Rất giống |
-| 0.7–0.8 | Chấp nhận |
-| < 0.6 | Khác người |
-
-Ngưỡng tham khảo:
-- Verify: ~0.75
-- Identify: ~0.7
-
----
-
-## 🔐 Bảo mật & Quyền riêng tư (Privacy)
-
-- Không lưu ảnh khuôn mặt
-- Không log embedding vector
-- DB chỉ chứa embedding đã chuẩn hoá
-- Có thể mở rộng:
-  - Rate limit
-  - Account lock
-  - Anti-spoofing
-
----
-
-## 📝 Audit & Security Logging
-
-Hệ thống có thể log các sự kiện:
-- Verify PASS / FAIL
-- Nhập ID không tồn tại
-
-Ví dụ:
-```
-2025-01-15 19:22:10 | VERIFY_ID_NOT_FOUND | input_id=admin
+```text
+face-verification-demo/
+|-- test_face.py            # Compare two image files
+|-- webcam_recognition.py   # In-memory webcam enrollment and verification
+|-- requirements.txt        # Original development environment snapshot
+`-- README.md
 ```
 
-👉 Phục vụ audit & phát hiện hành vi bất thường.
+## Quick start
 
----
+Python 3.10 is recommended.
 
-## 🛠 Công nghệ sử dụng
-
-- Python 3.10
-- InsightFace (ArcFace, SCRFD)
-- OpenCV
-- NumPy
-
----
-
-## 🚀 Cách chạy
+### 1. Create a virtual environment
 
 ```bash
-pip install -r requirements.txt
+python -m venv .venv
+```
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+macOS or Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+### 2. Install dependencies
+
+`requirements.txt` captures the original development environment. For a minimal CPU-only trial, install:
+
+```bash
+python -m pip install --upgrade pip
+pip install numpy opencv-python insightface onnxruntime
+```
+
+InsightFace may download the `buffalo_l` model package on first use.
+
+### 3. Compare two images
+
+Create an `images` directory and add:
+
+```text
+images/
+|-- face1.jpg
+`-- face3.jpg
+```
+
+Then run:
+
+```bash
+python test_face.py
+```
+
+The script prints the cosine similarity and a simple same-person/different-person decision.
+
+### 4. Run webcam verification
+
+```bash
 python webcam_recognition.py
 ```
 
----
+Controls:
 
-## 📈 Hướng mở rộng
+- Press `S` to enroll the first detected face in memory.
+- Keep the face visible to see the live similarity decision.
+- Press `Q` to quit.
 
-- Anti-spoofing (ảnh / video)
-- Face quality gate
-- Vector DB (FAISS / Milvus)
-- REST API backend
-- Multi-factor authentication
+The current script opens camera index `1`. If no webcam feed appears, change this line in `webcam_recognition.py`:
 
----
+```python
+cap = cv2.VideoCapture(1)
+```
 
-## 🎯 Tổng kết lộ trình học
+to:
 
-| Stage | Trọng tâm |
-|----|----|
-| 1 | Hiểu embedding |
-| 2 | Verify vs Identify |
-| 3 | System & security |
-| 4 | Near-production demo |
+```python
+cap = cv2.VideoCapture(0)
+```
 
----
+## What this project demonstrates
 
-## 👤 Tác giả
+- Face detection with InsightFace.
+- ArcFace embedding extraction.
+- L2 normalization and cosine similarity.
+- Image-to-image comparison.
+- In-memory webcam enrollment.
+- Real-time 1:1 verification feedback.
+
+## Current limitations
+
+This project is an educational prototype. It does **not** currently include:
+
+- Persistent identity or embedding storage.
+- 1:N identification against a user database.
+- Liveness detection or presentation-attack defense.
+- Face-quality checks.
+- Threshold calibration on a representative validation set.
+- Encryption, authentication, rate limiting, or access control.
+- Audit logging or production monitoring.
+- A service API or deployable user interface.
+
+It should not be presented as a production KYC, banking, or security system.
+
+## Responsible-use notes
+
+- Use only images and webcam data for which you have permission.
+- Treat face embeddings as sensitive biometric data.
+- Do not rely on a single demo threshold for real identity decisions.
+- Evaluate false-accept and false-reject rates on representative data before any real deployment.
+- Add liveness detection and an additional authentication factor for security-sensitive use cases.
+
+## Suggested next steps
+
+- Add persistent enrollment with encrypted embedding storage.
+- Separate enrollment and verification into explicit application states.
+- Calibrate thresholds and report ROC, FAR, and FRR metrics.
+- Add liveness detection and face-quality gating.
+- Wrap verification behind a small API with structured audit events.
+- Add automated tests for normalization and similarity decisions.
+
+## Author
 
 **Đào Danh Đăng Phụng**  
-Computer Science Graduate
+AI Engineer exploring applied computer vision, RAG, and GenAI systems.
 
-> Repo phục vụ học tập, demo kỹ thuật và định hướng xây dựng hệ thống AI trong môi trường doanh nghiệp.
+- [GitHub](https://github.com/CoderNonTay)
+- [LinkedIn](https://www.linkedin.com/in/%C4%91%C3%A0o-danh-%C4%91%C4%83ng-ph%E1%BB%A5ng-3453b933a/)
 
